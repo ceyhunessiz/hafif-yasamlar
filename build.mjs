@@ -1,0 +1,35 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import matter from 'gray-matter';
+import { marked } from 'marked';
+const root = process.cwd(), dist=path.join(root,'dist');
+fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});
+const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const copy=(src,dest)=>{if(fs.existsSync(src))fs.cpSync(src,dest,{recursive:true});};
+copy(path.join(root,'public'),dist);
+const source=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const base=source.replace('</head>','<meta name="robots" content="index,follow"></head>');
+const css=`<style>.hy-directory{max-width:1120px;margin:60px auto;padding:20px}.hy-directory h1{font-size:clamp(32px,5vw,56px);color:#073f35}.hy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}.hy-card{border:1px solid #e3e8e2;border-radius:18px;padding:24px;background:#fff}.hy-card h2{font-size:21px;color:#073f35}.hy-article{max-width:790px;margin:60px auto;padding:0 24px;line-height:1.85;font-size:18px}.hy-article h1{font-size:clamp(34px,5vw,52px);line-height:1.2;color:#073f35}.hy-article h2{font-size:28px;margin-top:36px}.hy-article img{max-width:100%;height:auto;border-radius:16px}.hy-article a{color:#086b59;text-decoration:underline}.hy-back{display:inline-block;margin-bottom:25px;color:#086b59}.hy-cover{width:100%;max-height:400px;object-fit:cover;border-radius:16px}.hy-tag{font-size:13px;color:#99643c;font-weight:800}.hy-footer{padding:50px 24px;text-align:center;background:#073f35;color:#fff;margin-top:60px}</style>`;
+const shell=(title,desc,body)=>`<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} | Hafif Yaşamlar</title><meta name="description" content="${esc(desc)}">${css}</head><body style="margin:0;font-family:Arial,sans-serif;background:#fdfbf7;color:#17352d"><header style="background:#073f35;color:white;padding:22px 6%;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap"><a style="color:white;font-size:23px;font-weight:bold;text-decoration:none" href="/">Hafif Yaşamlar</a><a style="color:white;text-decoration:none" href="/makaleler/">Makaleler →</a></header>${body}<footer class="hy-footer">Hafif Yaşamlar · Bilgiyi anla, yaşamını dönüştür.<br><small>İçerikler bilgilendirme amaçlıdır; tanı veya tedavi yerine geçmez.</small></footer></body></html>`;
+const filesDir=path.join(root,'content','articles');
+const files=fs.existsSync(filesDir)?fs.readdirSync(filesDir).filter(f=>/\.mdx?$/.test(f)):[];
+const posts=[];
+for(const file of files){
+  const raw=fs.readFileSync(path.join(filesDir,file),'utf8');const {data,content}=matter(raw);
+  if(data.published!==true && data.published!=='true')continue;
+  const slug=path.basename(file).replace(/\.mdx?$/,'');
+  const title=data.title||slug, desc=data.seo_description||data.description||'', category=data.category||'Makale';
+  const cover=data.image?`<img class="hy-cover" src="${esc(data.image)}" alt="${esc(title)}">`:'';
+  const html=marked.parse(content,{gfm:true});
+  const body=`<article class="hy-article"><a class="hy-back" href="/makaleler/">← Tüm makaleler</a><div class="hy-tag">${esc(category)}</div><h1>${esc(title)}</h1><p>${esc(data.description||'')}</p>${cover}<div>${html}</div><p><a href="/makaleler/">Diğer makaleleri oku →</a></p></article>`;
+  const folder=path.join(dist,'makaleler',slug);fs.mkdirSync(folder,{recursive:true});
+  fs.writeFileSync(path.join(folder,'index.html'),shell(data.seo_title||title,desc,body));
+  posts.push({title,desc,category,slug});
+}
+const listing=posts.map(p=>`<a class="hy-card" style="text-decoration:none;color:inherit" href="/makaleler/${encodeURIComponent(p.slug)}/"><div class="hy-tag">${esc(p.category)}</div><h2>${esc(p.title)}</h2><p>${esc(p.desc)}</p><span style="color:#086b59">Makaleyi oku →</span></a>`).join('');
+const dir=path.join(dist,'makaleler');fs.mkdirSync(dir,{recursive:true});
+fs.writeFileSync(path.join(dir,'index.html'),shell('Makaleler','Beslenme, metabolizma ve sağlık hakkında makaleler',`<main class="hy-directory"><h1>Vücudunun Şifreleri</h1><p>Beslenme, metabolizma ve sağlığı anlaşılır şekilde keşfet.</p><div class="hy-grid">${listing||'<p>Henüz yayımlanmış makale bulunmuyor.</p>'}</div></main>`));
+const banner=`<div style="position:fixed;bottom:12px;right:12px;z-index:9999;background:#073f35;padding:12px 18px;border-radius:30px;box-shadow:0 4px 16px #0003"><a href="/makaleler/" style="color:white;font-weight:700;text-decoration:none">📚 Gerçek makaleleri oku →</a></div>`;
+fs.writeFileSync(path.join(dist,'index.html'),base.replace('</body>',`${banner}</body>`));
+fs.writeFileSync(path.join(dist,'robots.txt'),'User-agent: *\nAllow: /\n');
+console.log(`Build hazır: ${posts.length} yayımlanmış makale.`);
