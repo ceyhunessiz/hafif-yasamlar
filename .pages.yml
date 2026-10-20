@@ -1,0 +1,52 @@
+media:
+  input: public/images
+  output: /images
+
+content:
+  - name: articles
+    label: Makaleler
+    type: collection
+    path: content/articles
+    view:
+      fields: [title, category, published]
+    fields:
+      - name: title
+        label: Makale Başlığı
+        type: string
+        required: true
+
+      - name: category
+        label: Kategori
+        type: select
+        options:
+          values:
+            - Metabolik Sağlık
+            - Sindirim Sistemi
+            - Takviyeler
+            - Vücudun Gizli Dosyaları
+        required: true
+
+      - name: description
+        label: Kısa Açıklama
+        type: text
+
+      - name: image
+        label: Kapak Görseli
+        type: image
+
+      - name: published
+        label: Yayımlansın mı?
+        type: boolean
+        default: false
+
+      - name: body
+        label: Makale İçeriği
+        type: rich-text
+
+      - name: seo_title
+        label: Google SEO Başlığı
+        type: string
+
+      - name: seo_description
+        label: Google SEO Açıklaması
+        type: text
