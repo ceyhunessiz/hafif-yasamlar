@@ -1,1 +1,17 @@
-{"name":"hafif-yasamlar","private":true,"scripts":{"build":"node build.mjs","deploy":"npm run build && wrangler deploy"},"dependencies":{"gray-matter":"^4.0.3","marked":"^15.0.0"},"devDependencies":{"wrangler":"^4.0.0"}}
+
+{
+  "name": "hafif-yasamlar",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "deploy": "npm run build && wrangler deploy",
+    "postinstall": "npm run build"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "marked": "^15.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
