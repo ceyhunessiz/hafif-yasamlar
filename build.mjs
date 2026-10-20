@@ -24,12 +24,21 @@ for(const file of files){
   const body=`<article class="hy-article"><a class="hy-back" href="/makaleler/">← Tüm makaleler</a><div class="hy-tag">${esc(category)}</div><h1>${esc(title)}</h1><p>${esc(data.description||'')}</p>${cover}<div>${html}</div><p><a href="/makaleler/">Diğer makaleleri oku →</a></p></article>`;
   const folder=path.join(dist,'makaleler',slug);fs.mkdirSync(folder,{recursive:true});
   fs.writeFileSync(path.join(folder,'index.html'),shell(data.seo_title||title,desc,body));
-  posts.push({title,desc,category,slug});
+  posts.push({title,desc,category,slug,image:data.image||''});
 }
 const listing=posts.map(p=>`<a class="hy-card" style="text-decoration:none;color:inherit" href="/makaleler/${encodeURIComponent(p.slug)}/"><div class="hy-tag">${esc(p.category)}</div><h2>${esc(p.title)}</h2><p>${esc(p.desc)}</p><span style="color:#086b59">Makaleyi oku →</span></a>`).join('');
 const dir=path.join(dist,'makaleler');fs.mkdirSync(dir,{recursive:true});
 fs.writeFileSync(path.join(dir,'index.html'),shell('Makaleler','Beslenme, metabolizma ve sağlık hakkında makaleler',`<main class="hy-directory"><h1>Vücudunun Şifreleri</h1><p>Beslenme, metabolizma ve sağlığı anlaşılır şekilde keşfet.</p><div class="hy-grid">${listing||'<p>Henüz yayımlanmış makale bulunmuyor.</p>'}</div></main>`));
-const banner=`<div style="position:fixed;bottom:12px;right:12px;z-index:9999;background:#073f35;padding:12px 18px;border-radius:30px;box-shadow:0 4px 16px #0003"><a href="/makaleler/" style="color:white;font-weight:700;text-decoration:none">📚 Gerçek makaleleri oku →</a></div>`;
-fs.writeFileSync(path.join(dist,'index.html'),base.replace('</body>',`${banner}</body>`));
+// Pages CMS makalelerini ana sayfadaki Vücudunun Şifreleri alanına yerleştir.
+const homepageCards = posts.map(p => {
+  const cover = p.image
+    ? `<img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
+    : '<span style="font-size:56px">📖</span>';
+  return `<article class="card"><div class="art">${cover}</div><div class="card-body"><span class="tag">${esc(p.category)}</span><h3>${esc(p.title)}</h3><p>${esc(p.desc)}</p><a class="read" href="/makaleler/${encodeURIComponent(p.slug)}/">Makaleyi oku →</a></div></article>`;
+}).join('');
+const emptyCards = '<p>İlk makalemiz yakında burada yayımlanacak.</p>';
+const home = base.replace(/(<div class="cards" id="articleCards">)[\s\S]*?(<\/div><\/section>)/, (_match, open, close) => open + (homepageCards || emptyCards) + close);
+if (home === base) throw new Error('Ana sayfada articleCards alanı bulunamadı. index.html dosyasını kontrol edin.');
+fs.writeFileSync(path.join(dist,'index.html'),home);
 fs.writeFileSync(path.join(dist,'robots.txt'),'User-agent: *\nAllow: /\n');
-console.log(`Build hazır: ${posts.length} yayımlanmış makale.`);
+console.log(`Build hazır: ${posts.length} yayımlanmış makale. Ana sayfa ve makaleler güncellendi.`);
